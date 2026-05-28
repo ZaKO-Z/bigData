@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+
+# Runtime files
+checkpoint*.json
+failed*.json
+crawler.log
+
+# Benchmark temp files
+*_bench_*.json
+*_bench_*.csv
