@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+target/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+crawler.log
+
+# Runtime files
+checkpoint*.json
+failed*.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large data files (optional, uncomment if needed)
+# *.xlsx
+# *.jar

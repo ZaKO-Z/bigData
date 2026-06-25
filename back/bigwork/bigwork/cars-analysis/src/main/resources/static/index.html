@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>汽车大数据分析平台</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            color: #202124;
+            background: #f4f6f8;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px;
+            color: #fff;
+            background: #174a76;
+        }
+        h1 { font-size: 22px; font-weight: 600; }
+        .header-btns { display: flex; gap: 8px; }
+        button {
+            padding: 7px 14px;
+            color: #174a76;
+            background: #fff;
+            border: 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        button:hover { background: #e8eef5; }
+        button.active { background: #2f78b7; color: #fff; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Tab 导航 */
+        .tabs {
+            display: flex;
+            gap: 0;
+            background: #fff;
+            border-bottom: 2px solid #dfe3e8;
+            padding: 0 28px;
+            overflow-x: auto;
+        }
+        .tab-btn {
+            padding: 10px 18px;
+            color: #59636e;
+            background: transparent;
+            border: 0;
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .tab-btn:hover { color: #174a76; background: #f0f4f8; }
+        .tab-btn.active { color: #174a76; border-bottom-color: #2f78b7; background: transparent; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        main {
+            width: min(1400px, calc(100% - 32px));
+            margin: 16px auto;
+        }
+        #status {
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border-left: 4px solid #d18b16;
+            background: #fff;
+            font-size: 13px;
+        }
+        #status.ok { border-color: #27864b; }
+        #status.error { border-color: #c43d3d; color: #a21e1e; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+        section {
+            min-width: 0;
+            padding: 16px;
+            background: #fff;
+            border: 1px solid #dfe3e8;
+            border-radius: 6px;
+        }
+        h2 { margin: 0 0 12px; font-size: 15px; color: #174a76; }
+        h3 { margin: 0 0 8px; font-size: 13px; color: #59636e; }
+
+        /* 柱状图 */
+        .bar-row {
+            display: grid;
+            grid-template-columns: 100px minmax(0, 1fr) 60px;
+            align-items: center;
+            gap: 8px;
+            min-height: 28px;
+            font-size: 13px;
+        }
+        .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bar-track { height: 14px; overflow: hidden; background: #edf0f3; border-radius: 2px; }
+        .bar-fill { height: 100%; min-width: 2px; background: #2f78b7; border-radius: 2px; }
+        .bar-value { color: #59636e; text-align: right; font-size: 12px; }
+
+        /* 表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .data-table th {
+            background: #f0f4f8;
+            color: #174a76;
+            padding: 6px 8px;
+            text-align: left;
+            border-bottom: 2px solid #dfe3e8;
+            white-space: nowrap;
+        }
+        .data-table td {
+            padding: 5px 8px;
+            border-bottom: 1px solid #edf0f3;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .data-table tr:hover td { background: #f8fafc; }
+        .empty { color: #7a838c; font-size: 13px; padding: 8px 0; }
+
+        /* 控制区 */
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .controls select, .controls input {
+            padding: 5px 8px;
+            border: 1px solid #dfe3e8;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .controls label { font-size: 13px; color: #59636e; }
+
+        .sub-header {
+            font-size: 13px;
+            color: #59636e;
+            margin-bottom: 10px;
+            padding-left: 2px;
+        }
+
+        /* ========== 数据分析页面样式 ========== */
+        .upload-zone {
+            border: 2px dashed #b0bec5;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #fafbfc;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #2f78b7;
+            background: #e8f0fe;
+        }
+        .upload-zone p { color: #59636e; font-size: 14px; margin-top: 8px; }
+        .upload-zone .icon { font-size: 36px; color: #90a4ae; }
+        .upload-zone input[type="file"] { display: none; }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: #e8f5e9;
+            border-radius: 4px;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+        .file-info .fname { font-weight: 600; color: #2e7d32; }
+
+        .preview-wrap {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .report-card {
+            padding: 12px 16px;
+            background: #fff;
+            border: 1px solid #dfe3e8;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .report-card .rname { font-weight: 600; font-size: 13px; }
+        .report-card .rmeta { color: #7a838c; font-size: 12px; }
+
+        .btn-group { display: flex; gap: 8px; margin-top: 12px; }
+        .btn-primary {
+            padding: 8px 20px;
+            background: #2f78b7;
+            color: #fff;
+            border: 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .btn-primary:hover { background: #2563a0; }
+        .btn-primary:disabled { background: #90a4ae; cursor: not-allowed; }
+
+        .step-indicator {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #7a838c;
+            background: #edf0f3;
+            border: 1px solid #dfe3e8;
+            position: relative;
+        }
+        .step:first-child { border-radius: 4px 0 0 4px; }
+        .step:last-child { border-radius: 0 4px 4px 0; }
+        .step.done { background: #e8f5e9; color: #2e7d32; }
+        .step.active { background: #2f78b7; color: #fff; border-color: #2f78b7; }
+
+        .msg { padding: 8px 12px; border-radius: 4px; font-size: 13px; margin: 8px 0; }
+        .msg-ok { background: #e8f5e9; color: #2e7d32; }
+        .msg-err { background: #fbe9e7; color: #c62828; }
+        .msg-info { background: #e3f2fd; color: #1565c0; }
+
+        @media (max-width: 900px) {
+            .grid, .grid-3 { grid-template-columns: 1fr; }
+            .bar-row { grid-template-columns: 80px minmax(0, 1fr) 50px; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>汽车大数据分析平台</h1>
+    <div class="header-btns">
+        <span id="ds-badge" style="display:none;padding:5px 12px;border-radius:4px;font-size:12px;font-weight:600;"></span>
+        <button id="refresh" type="button">刷新数据</button>
+    </div>
+</header>
+<nav class="tabs">
+    <button class="tab-btn active" data-tab="basic">基础统计</button>
+    <button class="tab-btn" data-tab="group">分类维度</button>
+    <button class="tab-btn" data-tab="sort">排序度量</button>
+    <button class="tab-btn" data-tab="biz">业务关联</button>
+    <button class="tab-btn" data-tab="analysis">数据分析</button>
+</nav>
+<main>
+    <div id="status">正在连接后端...</div>
+
+    <!-- 基础统计 -->
+    <div class="tab-content active" id="tab-basic">
+        <div class="grid" id="charts-basic"></div>
+    </div>
+
+    <!-- 分类维度 -->
+    <div class="tab-content" id="tab-group">
+        <div class="grid-3" id="charts-group"></div>
+    </div>
+
+    <!-- 排序度量 -->
+    <div class="tab-content" id="tab-sort">
+        <div class="controls">
+            <label>排序:</label>
+            <select id="sort-order">
+                <option value="desc">降序</option>
+                <option value="asc">升序</option>
+            </select>
+            <label>数量:</label>
+            <select id="sort-limit">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+            <button id="sort-go">查询</button>
+        </div>
+        <div class="grid" id="charts-sort"></div>
+    </div>
+
+    <!-- 业务关联 -->
+    <div class="tab-content" id="tab-biz">
+        <div class="grid" id="charts-biz"></div>
+    </div>
+
+    <!-- 数据分析 -->
+    <div class="tab-content" id="tab-analysis">
+        <!-- 步骤指示器 -->
+        <div class="step-indicator">
+            <div class="step active" id="step1">1. 选择数据文件</div>
+            <div class="step" id="step2">2. 预览与导入</div>
+            <div class="step" id="step3">3. 生成分析报表</div>
+        </div>
+
+        <!-- Step 1: 文件上传 -->
+        <section id="sec-upload">
+            <h2>选择输入数据文件</h2>
+            <p class="sub-header">支持 CSV（.csv）和 Excel（.xlsx / .xls）文件</p>
+            <div class="upload-zone" id="upload-zone">
+                <div class="icon">&#128196;</div>
+                <p>点击选择文件 或 拖拽文件到此处</p>
+                <p style="font-size:12px;color:#90a4ae;">支持 .csv / .xlsx / .xls 格式</p>
+                <input type="file" id="file-input" accept=".csv,.xlsx,.xls">
+            </div>
+            <div id="file-info-box" style="display:none;"></div>
+        </section>
+
+        <!-- Step 2: 数据预览 -->
+        <section id="sec-preview" style="display:none; margin-top:14px;">
+            <h2>预处理结果预览</h2>
+            <div id="preview-meta" class="msg msg-info"></div>
+            <div class="btn-group">
+                <button class="btn-primary" id="btn-import">确认导入到数据库</button>
+                <button class="btn-primary" id="btn-preview-db" style="background:#59636e;">查看当前数据库数据</button>
+            </div>
+            <div id="preview-table-wrap" class="preview-wrap" style="margin-top:12px;"></div>
+            <div id="db-preview-wrap" style="display:none; margin-top:12px;">
+                <h3>当前数据库数据预览</h3>
+                <div class="preview-wrap" id="db-preview-table"></div>
+            </div>
+        </section>
+
+        <!-- Step 3: 报表生成 -->
+        <section id="sec-report" style="display:none; margin-top:14px;">
+            <h2>分析报表生成</h2>
+            <div class="btn-group">
+                <button class="btn-primary" id="btn-gen-report">生成全维度分析报表</button>
+                <button class="btn-primary" id="btn-save-report" style="background:#27864b;" disabled>保存报表为 CSV</button>
+            </div>
+            <div id="report-msg" style="margin-top:8px;"></div>
+            <div id="report-result" style="margin-top:12px;"></div>
+
+            <h2 style="margin-top:20px;">已保存的报表</h2>
+            <div id="report-list"></div>
+        </section>
+    </div>
+</main>
+
+<script>
+// ==================== 数据定义 ====================
+
+const BASIC_REPORTS = [
+    ["品牌数量 Top 10", "/api/cars/brand-ranking"],
+    ["价格区间分布", "/api/cars/price-distribution"],
+    ["能源类型分布", "/api/cars/energy-distribution"],
+    ["车型级别分布", "/api/cars/level-distribution"]
+];
+
+const GROUP_REPORTS = [
+    ["品牌分布", "/api/cars/advanced/group/brand"],
+    ["级别分布", "/api/cars/advanced/group/level"],
+    ["能源类型分布", "/api/cars/advanced/group/energy"],
+    ["车身结构分布", "/api/cars/advanced/group/body-type"],
+    ["变速箱大类", "/api/cars/advanced/group/trans-type"],
+    ["变速箱亚型", "/api/cars/advanced/group/trans-subtype"],
+    ["燃油标号分布", "/api/cars/advanced/group/fuel-grade"],
+    ["气缸布局分布", "/api/cars/advanced/group/engine-layout"],
+    ["质保里程类型", "/api/cars/advanced/group/warranty-unlimited"],
+    ["上市年份分布", "/api/cars/advanced/group/launch-year"],
+    ["价格区间分布", "/api/cars/advanced/group/price-range"],
+    ["座位数分布", "/api/cars/advanced/group/seats"],
+    ["档位数分布", "/api/cars/advanced/group/gear-count"]
+];
+
+const SORT_REPORTS = [
+    { title: "上市时间排序", url: "/api/cars/advanced/sort/launch-date" },
+    { title: "厂商指导价排序", url: "/api/cars/advanced/sort/price" },
+    { title: "发动机排量排序", url: "/api/cars/advanced/sort/displacement" },
+    { title: "最大马力排序", url: "/api/cars/advanced/sort/horsepower" },
+    { title: "门数排序", url: "/api/cars/advanced/sort/doors" },
+    { title: "座位数排序", url: "/api/cars/advanced/sort/seats" },
+    { title: "档位数排序", url: "/api/cars/advanced/sort/gear-count" },
+    { title: "质保年限排序", url: "/api/cars/advanced/sort/warranty-years" },
+    { title: "质保里程排序", url: "/api/cars/advanced/sort/warranty-km" }
+];
+
+const BIZ_REPORTS = [
+    {
+        group: "品牌 × 级别 × 指导价",
+        desc: "同级别下不同品牌的定价带对比，分析品牌溢价能力与细分市场定位",
+        charts: [
+            ["各级别品牌价格区间", "/api/cars/biz/brand-level-price/band", "table"],
+            ["各级别品牌数与价格总览", "/api/cars/biz/brand-level-price/level-summary", "table"]
+        ]
+    },
+    {
+        group: "上市时间 × 能源类型",
+        desc: "按年/季度统计新车能源结构，分析新能源渗透趋势",
+        charts: [
+            ["年度能源结构", "/api/cars/biz/energy-trend/by-year", "table"],
+            ["新能源渗透率", "/api/cars/biz/energy-trend/new-energy-ratio", "table"],
+            ["品牌新能源占比", "/api/cars/biz/energy-trend/brand-ratio", "table"]
+        ]
+    },
+    {
+        group: "排量 × 燃油标号 × 马力",
+        desc: "动力参数匹配规律，排量与马力的正相关强度",
+        charts: [
+            ["排量段燃油标号分布", "/api/cars/biz/power-match/displacement-fuel", "table"],
+            ["排量段马力区间", "/api/cars/biz/power-match/displacement-horsepower", "table"],
+            ["排量×燃油×马力明细", "/api/cars/biz/power-match/detail", "table"]
+        ]
+    },
+    {
+        group: "车身结构 × 座位数 × 级别",
+        desc: "不同级别车型的空间配置策略",
+        charts: [
+            ["级别座位数分布", "/api/cars/biz/space-config/level-seats", "table"],
+            ["车身结构座位数", "/api/cars/biz/space-config/body-type-seats", "table"],
+            ["7座车型占比", "/api/cars/biz/space-config/seven-seat-ratio", "table"]
+        ]
+    },
+    {
+        group: "变速箱 × 发动机配置",
+        desc: "动力总成搭配规律",
+        charts: [
+            ["变速箱×发动机搭配", "/api/cars/biz/powertrain/trans-engine-combo", "table"],
+            ["排量段变速箱分布", "/api/cars/biz/powertrain/displacement-trans", "table"],
+            ["变速箱平均排量马力", "/api/cars/biz/powertrain/trans-disp-hp", "table"],
+            ["变速箱×电动统计", "/api/cars/biz/powertrain/trans-electric", "table"]
+        ]
+    }
+];
+
+// ==================== 渲染函数 ====================
+
+function labelOf(row) {
+    const key = Object.keys(row).find(k => !["cnt", "value", "CNT", "VALUE"].includes(k));
+    return key ? String(row[key]) : "未知";
+}
+
+function valueOf(row) {
+    const v = row.cnt ?? row.CNT ?? row.value ?? row.VALUE ?? 0;
+    return Number(v) || 0;
+}
+
+function renderBar(title, rows) {
+    const section = document.createElement("section");
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+    section.appendChild(heading);
+    if (!rows.length) {
+        section.insertAdjacentHTML("beforeend", '<div class="empty">暂无数据</div>');
+        return section;
+    }
+    const max = Math.max(...rows.map(valueOf), 1);
+    rows.forEach(row => {
+        const item = document.createElement("div");
+        item.className = "bar-row";
+        const label = labelOf(row);
+        const value = valueOf(row);
+        item.innerHTML =
+            `<span class="bar-label" title="${label}">${label}</span>` +
+            `<span class="bar-track"><span class="bar-fill" style="width:${value / max * 100}%"></span></span>` +
+            `<span class="bar-value">${value.toLocaleString()}</span>`;
+        section.appendChild(item);
+    });
+    return section;
+}
+
+function renderTable(title, rows) {
+    const section = document.createElement("section");
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+    section.appendChild(heading);
+    if (!rows.length) {
+        section.insertAdjacentHTML("beforeend", '<div class="empty">暂无数据</div>');
+        return section;
+    }
+    const keys = Object.keys(rows[0]);
+    let html = '<table class="data-table"><thead><tr>';
+    keys.forEach(k => { html += `<th>${k}</th>`; });
+    html += '</tr></thead><tbody>';
+    rows.forEach(row => {
+        html += '<tr>';
+        keys.forEach(k => {
+            let v = row[k];
+            if (v === null || v === undefined) v = '-';
+            html += `<td title="${String(v)}">${v}</td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</tbody></table>';
+    section.insertAdjacentHTML("beforeend", html);
+    return section;
+}
+
+function buildTableHTML(keys, rows, maxRows) {
+    const limit = maxRows || 20;
+    const show = rows.slice(0, limit);
+    let html = '<table class="data-table"><thead><tr>';
+    keys.forEach(k => { html += `<th>${k}</th>`; });
+    html += '</tr></thead><tbody>';
+    show.forEach(row => {
+        html += '<tr>';
+        keys.forEach(k => {
+            let v = row[k] ?? '-';
+            html += `<td title="${String(v)}">${v}</td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</tbody></table>';
+    if (rows.length > limit) {
+        html += `<div style="color:#7a838c;font-size:12px;padding:4px 0;">显示前 ${limit} 条，共 ${rows.length} 条</div>`;
+    }
+    return html;
+}
+
+// ==================== 数据源状态 ====================
+
+async function checkDataSource() {
+    try {
+        const ds = await fetchJSON("/api/cars/datasource");
+        const badge = document.getElementById("ds-badge");
+        badge.style.display = "inline-block";
+        if (ds.source === "hive") {
+            badge.style.background = "#e8f5e9";
+            badge.style.color = "#2e7d32";
+            badge.textContent = "Hive 数据仓库";
+        } else {
+            badge.style.background = "#fff3e0";
+            badge.style.color = "#e65100";
+            badge.textContent = "H2 本地数据库（Hive 不可用）";
+        }
+        return ds;
+    } catch (e) {
+        return { source: "unknown", label: "未知", status: "error" };
+    }
+}
+
+// ==================== 数据加载 ====================
+
+async function fetchJSON(url) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`${resp.status}`);
+    return resp.json();
+}
+
+async function loadBasic() {
+    const container = document.getElementById("charts-basic");
+    container.replaceChildren();
+    const results = await Promise.all(BASIC_REPORTS.map(async ([title, url]) => {
+        try { return [title, await fetchJSON(url), null]; }
+        catch (e) { return [title, [], e.message]; }
+    }));
+    results.forEach(([title, rows, err]) => {
+        if (err) {
+            const s = renderBar(title, []);
+            s.querySelector(".empty").textContent = `查询失败: ${err}`;
+            container.appendChild(s);
+        } else {
+            container.appendChild(renderBar(title, rows));
+        }
+    });
+}
+
+async function loadGroup() {
+    const container = document.getElementById("charts-group");
+    container.replaceChildren();
+    const results = await Promise.all(GROUP_REPORTS.map(async ([title, url]) => {
+        try { return [title, await fetchJSON(url), null]; }
+        catch (e) { return [title, [], e.message]; }
+    }));
+    results.forEach(([title, rows, err]) => {
+        if (err) {
+            const s = renderBar(title, []);
+            s.querySelector(".empty").textContent = `查询失败: ${err}`;
+            container.appendChild(s);
+        } else {
+            container.appendChild(renderBar(title, rows));
+        }
+    });
+}
+
+async function loadSort() {
+    const container = document.getElementById("charts-sort");
+    container.replaceChildren();
+    const order = document.getElementById("sort-order").value;
+    const limit = document.getElementById("sort-limit").value;
+    const results = await Promise.all(SORT_REPORTS.map(async ({title, url}) => {
+        try { return [title, await fetchJSON(`${url}?order=${order}&limit=${limit}`), null]; }
+        catch (e) { return [title, [], e.message]; }
+    }));
+    results.forEach(([title, rows, err]) => {
+        if (err) {
+            const s = renderTable(title, []);
+            s.querySelector(".empty").textContent = `查询失败: ${err}`;
+            container.appendChild(s);
+        } else {
+            container.appendChild(renderTable(title, rows));
+        }
+    });
+}
+
+async function loadBiz() {
+    const container = document.getElementById("charts-biz");
+    container.replaceChildren();
+    for (const group of BIZ_REPORTS) {
+        const groupDiv = document.createElement("div");
+        groupDiv.style.cssText = "grid-column: 1 / -1; margin-top: 8px;";
+        groupDiv.innerHTML = `<h2 style="font-size:17px; color:#174a76; border-bottom:2px solid #2f78b7; padding-bottom:6px;">${group.group}</h2>` +
+            `<p class="sub-header">${group.desc}</p>`;
+        container.appendChild(groupDiv);
+
+        const rowDiv = document.createElement("div");
+        rowDiv.className = "grid";
+        rowDiv.style.cssText = "grid-column: 1 / -1;";
+
+        const results = await Promise.all(group.charts.map(async ([title, url]) => {
+            try { return [title, await fetchJSON(url), null]; }
+            catch (e) { return [title, [], e.message]; }
+        }));
+        results.forEach(([title, rows, err]) => {
+            if (err) {
+                const s = renderTable(title, []);
+                s.querySelector(".empty").textContent = `查询失败: ${err}`;
+                rowDiv.appendChild(s);
+            } else {
+                rowDiv.appendChild(renderTable(title, rows));
+            }
+        });
+        container.appendChild(rowDiv);
+    }
+}
+
+// ==================== Tab 切换 ====================
+
+let loadedTabs = new Set(["basic"]);
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+        btn.classList.add("active");
+        const tab = btn.dataset.tab;
+        document.getElementById("tab-" + tab).classList.add("active");
+        if (!loadedTabs.has(tab)) {
+            loadedTabs.add(tab);
+            loadTab(tab);
+        }
+    });
+});
+
+function loadTab(tab) {
+    const status = document.getElementById("status");
+    status.className = "";
+    status.textContent = "正在加载数据...";
+    const loader = {
+        basic: loadBasic,
+        group: loadGroup,
+        sort: loadSort,
+        biz: loadBiz,
+        analysis: initAnalysis
+    }[tab];
+    if (loader) {
+        loader().then(() => {
+            status.className = "ok";
+            status.textContent = "数据加载完成";
+        }).catch(e => {
+            status.className = "error";
+            status.textContent = "加载失败: " + (e.message || e);
+        });
+    }
+}
+
+// ==================== 数据分析页面逻辑 ====================
+
+let uploadedFile = null;
+let parsedPreview = null;
+
+async function initAnalysis() {
+    loadReportList();
+}
+
+// 文件上传区
+const uploadZone = document.getElementById("upload-zone");
+const fileInput = document.getElementById("file-input");
+
+uploadZone.addEventListener("click", () => fileInput.click());
+uploadZone.addEventListener("dragover", e => { e.preventDefault(); uploadZone.classList.add("dragover"); });
+uploadZone.addEventListener("dragleave", () => uploadZone.classList.remove("dragover"));
+uploadZone.addEventListener("drop", e => {
+    e.preventDefault();
+    uploadZone.classList.remove("dragover");
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", () => {
+    if (fileInput.files.length) handleFile(fileInput.files[0]);
+});
+
+async function handleFile(file) {
+    uploadedFile = file;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['csv', 'xlsx', 'xls'].includes(ext)) {
+        showMsg("file-info-box", `不支持的文件类型: .${ext}，请上传 CSV 或 Excel 文件`, "err");
+        return;
+    }
+
+    // 显示文件信息
+    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+    document.getElementById("file-info-box").style.display = "block";
+    document.getElementById("file-info-box").innerHTML =
+        `<div class="file-info"><span class="fname">${file.name}</span><span>${sizeMB} MB</span></div>` +
+        `<div class="msg msg-info">正在解析文件...</div>`;
+
+    // 上传并解析
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const resp = await fetch("/api/data/upload", { method: "POST", body: formData });
+        const data = await resp.json();
+        if (data.success) {
+            parsedPreview = data;
+            document.getElementById("file-info-box").innerHTML =
+                `<div class="file-info"><span class="fname">${data.filename}</span><span>${data.rowCount} 行数据</span><span>${data.headers.length} 列</span></div>`;
+
+            // 显示预览
+            showStep(2);
+            document.getElementById("sec-preview").style.display = "block";
+            document.getElementById("preview-meta").textContent =
+                `文件: ${data.filename} | 总行数: ${data.rowCount} | 列数: ${data.headers.length} | 列: ${data.headers.join(", ")}`;
+
+            // 渲染预览表格
+            const keys = data.headers;
+            const rows = data.preview;
+            document.getElementById("preview-table-wrap").innerHTML = buildTableHTML(keys, rows);
+        } else {
+            document.getElementById("file-info-box").innerHTML =
+                `<div class="msg msg-err">解析失败: ${data.error}</div>`;
+        }
+    } catch (e) {
+        document.getElementById("file-info-box").innerHTML =
+            `<div class="msg msg-err">上传失败: ${e.message}</div>`;
+    }
+}
+
+// 导入按钮
+document.getElementById("btn-import").addEventListener("click", async () => {
+    if (!uploadedFile) return;
+    const btn = document.getElementById("btn-import");
+    btn.disabled = true;
+    btn.textContent = "导入中...";
+
+    const formData = new FormData();
+    formData.append("file", uploadedFile);
+
+    try {
+        const resp = await fetch("/api/data/import", { method: "POST", body: formData });
+        const data = await resp.json();
+        if (data.success) {
+            btn.textContent = "导入成功";
+            btn.style.background = "#27864b";
+            document.getElementById("preview-meta").className = "msg msg-ok";
+            document.getElementById("preview-meta").textContent = `成功导入 ${data.importedCount} 条数据到数据库`;
+
+            // 显示报表生成区
+            showStep(3);
+            document.getElementById("sec-report").style.display = "block";
+        } else {
+            btn.textContent = "导入失败";
+            btn.style.background = "#c43d3d";
+            document.getElementById("preview-meta").className = "msg msg-err";
+            document.getElementById("preview-meta").textContent = `导入失败: ${data.error}`;
+            setTimeout(() => { btn.disabled = false; btn.textContent = "确认导入到数据库"; btn.style.background = ""; }, 2000);
+        }
+    } catch (e) {
+        btn.textContent = "导入失败";
+        setTimeout(() => { btn.disabled = false; btn.textContent = "确认导入到数据库"; btn.style.background = ""; }, 2000);
+    }
+});
+
+// 查看数据库数据
+document.getElementById("btn-preview-db").addEventListener("click", async () => {
+    const wrap = document.getElementById("db-preview-wrap");
+    if (wrap.style.display === "none") {
+        wrap.style.display = "block";
+        try {
+            const data = await fetchJSON("/api/data/preview?table=cars&limit=30");
+            if (data.success && data.rows.length) {
+                const keys = Object.keys(data.rows[0]);
+                document.getElementById("db-preview-table").innerHTML = buildTableHTML(keys, data.rows);
+            } else {
+                document.getElementById("db-preview-table").innerHTML = '<div class="empty">数据库暂无数据</div>';
+            }
+        } catch (e) {
+            document.getElementById("db-preview-table").innerHTML = `<div class="empty">查询失败: ${e.message}</div>`;
+        }
+    } else {
+        wrap.style.display = "none";
+    }
+});
+
+// 生成报表
+document.getElementById("btn-gen-report").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-gen-report");
+    btn.disabled = true;
+    btn.textContent = "正在生成报表...";
+    document.getElementById("report-msg").innerHTML = '<div class="msg msg-info">正在执行全维度分析，请稍候...</div>';
+
+    try {
+        const data = await fetchJSON("/api/data/report/generate");
+        if (data.success) {
+            btn.textContent = "报表生成完成";
+            document.getElementById("btn-save-report").disabled = false;
+            document.getElementById("report-msg").innerHTML = '<div class="msg msg-ok">全维度分析报表已生成</div>';
+
+            // 渲染报表摘要
+            const report = data.report;
+            let html = '';
+            for (const [section, content] of Object.entries(report)) {
+                if (section === 'report_time') continue;
+                html += `<h3>${section}</h3>`;
+                for (const [name, rows] of Object.entries(content)) {
+                    if (Array.isArray(rows) && rows.length) {
+                        const keys = Object.keys(rows[0]);
+                        html += `<details open><summary style="cursor:pointer;font-weight:600;font-size:13px;margin:6px 0;">${name} (${rows.length}条)</summary>`;
+                        html += '<div class="preview-wrap">' + buildTableHTML(keys, rows, 20) + '</div></details>';
+                    }
+                }
+            }
+            document.getElementById("report-result").innerHTML = html;
+        } else {
+            btn.textContent = "生成失败";
+            document.getElementById("report-msg").innerHTML = `<div class="msg msg-err">生成失败: ${data.error}</div>`;
+            setTimeout(() => { btn.disabled = false; btn.textContent = "生成全维度分析报表"; }, 2000);
+        }
+    } catch (e) {
+        btn.textContent = "生成失败";
+        document.getElementById("report-msg").innerHTML = `<div class="msg msg-err">请求失败: ${e.message}</div>`;
+        setTimeout(() => { btn.disabled = false; btn.textContent = "生成全维度分析报表"; }, 2000);
+    }
+});
+
+// 保存报表
+document.getElementById("btn-save-report").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-save-report");
+    btn.disabled = true;
+    btn.textContent = "保存中...";
+
+    try {
+        const resp = await fetch("/api/data/report/save", { method: "POST" });
+        const data = await resp.json();
+        if (data.success) {
+            btn.textContent = "已保存";
+            btn.style.background = "#27864b";
+            document.getElementById("report-msg").innerHTML =
+                `<div class="msg msg-ok">报表已保存: ${data.filePath}</div>`;
+            loadReportList();
+        } else {
+            btn.textContent = "保存失败";
+            document.getElementById("report-msg").innerHTML =
+                `<div class="msg msg-err">保存失败: ${data.error}</div>`;
+            setTimeout(() => { btn.disabled = false; btn.textContent = "保存报表为 CSV"; }, 2000);
+        }
+    } catch (e) {
+        btn.textContent = "保存失败";
+        setTimeout(() => { btn.disabled = false; btn.textContent = "保存报表为 CSV"; }, 2000);
+    }
+});
+
+// 加载报表列表
+async function loadReportList() {
+    try {
+        const data = await fetchJSON("/api/data/report/list");
+        const container = document.getElementById("report-list");
+        if (!data.reports || !data.reports.length) {
+            container.innerHTML = '<div class="empty">暂无已保存的报表</div>';
+            return;
+        }
+        container.innerHTML = data.reports.map(r =>
+            `<div class="report-card">
+                <div>
+                    <div class="rname">${r.filename}</div>
+                    <div class="rmeta">${(r.size / 1024).toFixed(1)} KB | ${r.modified}</div>
+                </div>
+                <a href="/api/data/report/download?filename=${r.filename}" class="btn-primary" style="text-decoration:none;font-size:12px;padding:5px 12px;">下载</a>
+            </div>`
+        ).join('');
+    } catch (e) {
+        document.getElementById("report-list").innerHTML = '<div class="empty">加载报表列表失败</div>';
+    }
+}
+
+// 步骤指示器
+function showStep(n) {
+    for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById("step" + i);
+        el.className = i < n ? "step done" : i === n ? "step active" : "step";
+    }
+}
+
+function showMsg(targetId, text, type) {
+    const cls = type === "err" ? "msg-err" : type === "ok" ? "msg-ok" : "msg-info";
+    document.getElementById(targetId).innerHTML = `<div class="msg ${cls}">${text}</div>`;
+}
+
+// ==================== 事件绑定 ====================
+
+document.getElementById("refresh").addEventListener("click", () => {
+    loadedTabs.clear();
+    loadedTabs.add("basic");
+    ["charts-basic", "charts-group", "charts-sort", "charts-biz"].forEach(id => {
+        document.getElementById(id).replaceChildren();
+    });
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    document.querySelector('[data-tab="basic"]').classList.add("active");
+    document.getElementById("tab-basic").classList.add("active");
+    loadTab("basic");
+});
+
+document.getElementById("sort-go").addEventListener("click", () => {
+    loadSort();
+});
+
+// 初始加载
+checkDataSource();
+loadTab("basic");
+</script>
+</body>
+</html>

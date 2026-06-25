@@ -1,0 +1,43 @@
+@import './base.css';
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+  font-weight: normal;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: 0.2s;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 全局表格样式 */
+table {
+  border-collapse: collapse;
+}
+
+/* 通用按钮样式 */
+button {
+  font-family: inherit;
+}
