@@ -41,3 +41,6 @@ Thumbs.db
 # Large data files (optional, uncomment if needed)
 # *.xlsx
 # *.jar
+
+# Large jar files (exceeds GitHub 50MB limit)
+hive-jdbc-4.0.0-standalone.jar
